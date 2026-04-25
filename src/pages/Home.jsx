@@ -1,4 +1,4 @@
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { createRoom, joinRoom } from "../lib/room";
 
@@ -41,6 +41,15 @@ export default function Home() {
         }
     }
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const joinCode = params.get("join");
+        if (joinCode) {
+            setCode(joinCode.toUpperCase());
+            setMode("join");
+        }
+    }, []);
+
     return (
         <div className="page">
             <h1>🕵️ UNDERCOVER GAME</h1>
@@ -77,7 +86,7 @@ export default function Home() {
                         setMode(null);
                         setError("");
                     }}>
-                        Retour
+                        Back
                     </button>
                 </div>
             )}

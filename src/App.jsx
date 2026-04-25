@@ -3,6 +3,7 @@ import './App.css'
 import {BrowserRouter, Route, Routes} from "react-router-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import Home from "./pages/Home.jsx";
+import Lobby from "./pages/Lobby.jsx";
 
 function JoinRedirect() {
     const { code } = useParams();
@@ -18,7 +19,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />}/>
-        <Route path="/loby/:code" element={<Lobby />}/>
+        <Route path="/lobby/:code" element={<Lobby />}/>
         <Route path="/join/:code" element={<JoinRedirect />}/>
       </Routes>
     </BrowserRouter>
