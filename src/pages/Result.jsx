@@ -23,10 +23,15 @@ export default function Result() {
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "rooms", code), snap => {
             if (!snap.exists()) return;
-            setRoom(snap.data());
+            const data = snap.data();
+            setRoom(data);
+            // redirect everyone when host launches next round
+            if (data.status === "settings") navigate(`/settings/${code}`);
+            if (data.status === "reveal") navigate(`/reveal/${code}`);
+            if (data.status === "lobby") navigate(`/lobby/${code}`);
         });
         return () => unsub();
-    }, [code]);
+    }, [code, navigate()]);
 
     useEffect(() => {
         const unsub = onSnapshot(collection(db, "rooms", code, "players"), snap => {
