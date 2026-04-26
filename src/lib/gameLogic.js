@@ -43,6 +43,7 @@ export const startRound = async (roomCode, settings) => {
         currentRound: (settings.currentRound ?? 0) + 1,
         playerOrder,            // array of player ids in turn order
         currentTurnIndex: 0,  // index in playerOrder
+        showRoles: settings.showRoles ?? true,
     });
 
     await batch.commit();

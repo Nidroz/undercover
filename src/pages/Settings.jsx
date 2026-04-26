@@ -24,6 +24,7 @@ export default function Settings() {
         impostorCount: 1,
         mrWhiteEnabled: false,
         theme: "random",
+        showRoles: true,
         customWords: null,
         roundCount: 3,
     });
@@ -116,6 +117,18 @@ export default function Settings() {
                         onClick={() => setSettings(s => ({ ...s, mrWhiteEnabled: !s.mrWhiteEnabled }))}
                     />
                 </div>
+            </div>
+
+            {/* hide roles */}
+            <div className="setting-row">
+                <div>
+                    <div className="setting-label">Show roles during game</div>
+                    <div className="setting-sub">Players see if they're civilian, impostor, etc.</div>
+                </div>
+                <div
+                    className={`toggle ${settings.showRoles ? "on" : ""}`}
+                    onClick={() => setSettings(s => ({...s, showRoles: !s.showRoles}))}
+                />
             </div>
 
             {/* theme */}

@@ -31,7 +31,7 @@ export default function Result() {
             if (data.status === "lobby") navigate(`/lobby/${code}`);
         });
         return () => unsub();
-    }, [code, navigate()]);
+    }, [code, navigate]);
 
     useEffect(() => {
         const unsub = onSnapshot(collection(db, "rooms", code, "players"), snap => {

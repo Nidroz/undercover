@@ -13,6 +13,8 @@ export default function WordReveal() {
     const [players, setPlayers] = useState([]);
     const [room, setRoom] = useState(null);
 
+    const showRoles = room?.showRoles ?? true;
+
     useEffect(() => {
         const fetch = async () => {
             const snap = await getDoc(doc(db, "rooms", code, "players", uid));
@@ -79,10 +81,12 @@ export default function WordReveal() {
                 <>
                     {/* word card */}
                     <div className={`word-reveal-card ${roleClass} fu1`}>
-                        <span className={`role-pill ${roleClass}`}>{ROLE_LABEL[player.role]}</span>
+                        {showRoles && (
+                            <span className={`role-pill ${roleClass}`}>{ROLE_LABEL[player.role]}</span>
+                        )}
                         <span className="word-big">
-              {player.role === "mrWhite" ? "???" : player.word}
-            </span>
+                          {player.role === "mrWhite" ? "???" : player.word}
+                        </span>
                         {player.role === "mrWhite" && (
                             <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", maxWidth: 240 }}>
                                 You have no word. Blend in and try to guess the civilian word.
@@ -98,8 +102,8 @@ export default function WordReveal() {
                         <div className="ready-avatars">
                             {players.map(p => (
                                 <span key={p.id} className={`ready-ava ${p.ready ? "done" : ""}`} title={p.name}>
-                  {p.avatar}
-                </span>
+                                  {p.avatar}
+                                </span>
                             ))}
                         </div>
                     </div>
