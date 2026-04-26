@@ -535,16 +535,16 @@ input::placeholder { color: var(--muted2); }
   font-size: 34px; letter-spacing: 2px;
 }
 
-.elim-card {
+.eliminated-card {
   background: var(--bg2); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 18px;
   width: 100%; display: flex; align-items: center; gap: 14px;
 }
-.elim-ava { font-size: 38px; }
-.elim-info { flex: 1; }
-.elim-name { font-weight: 600; font-size: 17px; }
-.elim-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.elim-tag { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.eliminated-ava { font-size: 38px; }
+.eliminated-info { flex: 1; }
+.eliminated-name { font-weight: 600; font-size: 17px; }
+.eliminated-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.eliminated-tag { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 
 .words-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;

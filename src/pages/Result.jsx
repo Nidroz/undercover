@@ -33,14 +33,14 @@ export default function Result() {
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             setPlayers(list);
 
-            const elim = list.find(p => p.id === room?.lastEliminated);
-            setEliminated(elim ?? null);
+            const eliminated = list.find(p => p.id === room?.lastEliminated);
+            setEliminated(eliminated ?? null);
 
-            if (elim) {
-                if (elim.role === "impostor") {
+            if (eliminated) {
+                if (eliminated.role === "impostor") {
                     const mrWhite = list.find(p => p.role === "mrWhite");
                     setWinner(mrWhite?.isAlive ? "mrWhiteGuess" : "civilians");
-                } else if (elim.role === "mrWhite") {
+                } else if (eliminated.role === "mrWhite") {
                     setWinner("civilians");
                 } else {
                     setWinner("impostors");
@@ -96,15 +96,15 @@ export default function Result() {
 
             {/* eliminated player */}
             {eliminated && (
-                <div className="elim-card fu1">
-                    <span className="elim-ava">{eliminated.avatar}</span>
-                    <div className="elim-info">
-                        <div className="elim-name">{eliminated.name}</div>
-                        <div className="elim-role" style={{ color: ROLE_COLOR[eliminated.role] }}>
+                <div className="eliminated-card fu1">
+                    <span className="eliminated-ava">{eliminated.avatar}</span>
+                    <div className="eliminated-info">
+                        <div className="eliminated-name">{eliminated.name}</div>
+                        <div className="eliminated-role" style={{ color: ROLE_COLOR[eliminated.role] }}>
                             {ROLE_LABEL[eliminated.role]}
                         </div>
                     </div>
-                    <span className="elim-tag" style={{ color: "var(--muted)" }}>Eliminated</span>
+                    <span className="eliminated-tag" style={{ color: "var(--muted)" }}>Eliminated</span>
                 </div>
             )}
 
