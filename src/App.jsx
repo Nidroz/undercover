@@ -10,6 +10,7 @@ import WordReveal from "./pages/WordReveal.jsx";
 import Game from "./pages/Game.jsx";
 import Vote from "./pages/Vote.jsx";
 import Result from "./pages/Result.jsx";
+import BugReport from "./pages/BugReport.jsx";
 
 function JoinRedirect() {
     const { code } = useParams();
@@ -33,6 +34,8 @@ function App() {
         <Route path="/game/:code" element={<Game />}/>
         <Route path="/vote/:code" element={<Vote />}/>
         <Route path="/result/:code" element={<Result />}/>
+
+        <Route path="/" element={<BugReport />}/>
       </Routes>
     </BrowserRouter>
   )
