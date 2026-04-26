@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
-import {
-    doc, collection, onSnapshot, updateDoc, addDoc, query, orderBy,
-} from "firebase/firestore";
+import { doc, collection, onSnapshot, updateDoc, addDoc, query, orderBy } from "firebase/firestore";
 
 export default function Game() {
     const { code } = useParams();
     const navigate = useNavigate();
     const uid = sessionStorage.getItem("uid");
+    const chatRef = useRef(null);
 
     const [room, setRoom] = useState(null);
     const [players, setPlayers] = useState([]);
@@ -20,21 +19,18 @@ export default function Game() {
     const currentTurnIndex = room?.currentTurnIndex ?? 0;
     const currentTurnId = playerOrder[currentTurnIndex];
     const isMyTurn = currentTurnId === uid;
+    const isHost = room?.hostId === uid;
 
-    // function to pass turn to next player
     const passTurn = async () => {
-        const nextIndex = currentTurnIndex + 1;
-        if (nextIndex >= playerOrder.length) {
-            // everyone has given a clue, host can now trigger vote or another round of clues
-            await updateDoc(doc(db, "rooms", code), { currentTurnIndex: 0, turnRound: (room?.turnRound ?? 1) + 1 });
-        } else {
-            await updateDoc(doc(db, "rooms", code), { currentTurnIndex: nextIndex });
-        }
+        const next = currentTurnIndex + 1;
+        await updateDoc(doc(db, "rooms", code), {
+            currentTurnIndex: next >= playerOrder.length ? 0 : next,
+            ...(next >= playerOrder.length ? { turnRound: (room?.turnRound ?? 1) + 1 } : {}),
+        });
     };
 
-    // listen to room
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, "rooms", code), (snap) => {
+        const unsub = onSnapshot(doc(db, "rooms", code), snap => {
             if (!snap.exists()) return;
             const data = snap.data();
             setRoom(data);
@@ -44,42 +40,36 @@ export default function Game() {
         return () => unsub();
     }, [code, navigate]);
 
-    // listen to players
     useEffect(() => {
-        const unsub = onSnapshot(
-            collection(db, "rooms", code, "players"),
-            (snap) => {
-                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                setPlayers(list);
-                setMyPlayer(list.find(p => p.id === uid) ?? null);
-            }
-        );
+        const unsub = onSnapshot(collection(db, "rooms", code, "players"), snap => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setPlayers(list);
+            setMyPlayer(list.find(p => p.id === uid) ?? null);
+        });
         return () => unsub();
     }, [code, uid]);
 
-    // listen to messages
     useEffect(() => {
         const unsub = onSnapshot(
             query(collection(db, "rooms", code, "messages"), orderBy("createdAt")),
-            (snap) => {
-                setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-            }
+            snap => setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })))
         );
         return () => unsub();
     }, [code]);
 
+    // auto-scroll chat to bottom
+    useEffect(() => {
+        if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }, [messages]);
+
     const sendMessage = async () => {
         const text = input.trim();
-        if (!text || !myPlayer?.isAlive) return;
+        if (!text || !myPlayer?.isAlive || !isMyTurn) return;
         setInput("");
         await addDoc(collection(db, "rooms", code, "messages"), {
-            uid,
-            playerName: myPlayer.name,
-            avatar: myPlayer.avatar,
-            text,
-            createdAt: new Date(),
+            uid, playerName: myPlayer.name, avatar: myPlayer.avatar,
+            text, createdAt: new Date(),
         });
-        // auto-pass turn after sending clue
         await passTurn();
     };
 
@@ -87,80 +77,71 @@ export default function Game() {
         await updateDoc(doc(db, "rooms", code), { status: "vote" });
     };
 
-    const isHost = room?.hostId === uid;
-    const alivePlayers = players.filter(p => p.isAlive);
+    const currentTurnPlayer = players.find(p => p.id === currentTurnId);
 
     return (
-        <div className="page game-page">
-            <div className="game-header">
-                <h2>💬 Discussion</h2>
-                <span className="round-badge">Round {room?.currentRound} / {room?.settings?.roundCount}</span>
+        <div className="game-layout">
+            {/* top bar */}
+            <div className="game-topbar">
+                <span className="game-title">Discussion</span>
+                <span className="round-pill">Round {room?.currentRound} / {room?.settings?.roundCount}</span>
+                {isHost && (
+                    <button className="btn-vote-trigger" onClick={goToVote}>🗳️ Vote</button>
+                )}
             </div>
 
-            {/* alive players */}
-            <div className="players-bar">
+            {/* players row */}
+            <div className="players-scroll">
                 {players.map(p => (
-                    <div key={p.id} className={`player-chip ${!p.isAlive ? "eliminated" : ""}`}>
-                        <span>{p.avatar}</span>
-                        <span>{p.name}</span>
-                        {p.id === uid && <span className="you-badge">you</span>}
-                    </div>
-                ))}
-            </div>
-
-            {/* chat */}
-            <div className="chat-box">
-                {messages.map(m => (
-                    <div key={m.id} className={`message ${m.uid === uid ? "mine" : ""}`}>
-                        <span className="msg-avatar">{m.avatar}</span>
-                        <div className="msg-content">
-                            <span className="msg-author">{m.playerName}</span>
-                            <span className="msg-text">{m.text}</span>
+                    <div key={p.id} className={`pchip ${!p.isAlive ? "dead" : ""}`}>
+                        <div className={`pchip-ava ${p.id === currentTurnId && p.isAlive ? "current" : ""}`}>
+                            {p.avatar}
                         </div>
+                        <span className="pchip-name">{p.id === uid ? "you" : p.name}</span>
                     </div>
                 ))}
             </div>
 
-            {/* current turn indicator */}
-            <div className="turn-indicator">
-                {isMyTurn ? (
-                    <p className="your-turn">👉 It's your turn to give a clue !</p>
-                ) : (
-                    <p>
-                        Waiting for{" "}
-                        <strong>
-                            {players.find(p => p.id === currentTurnId)?.avatar}{" "}
-                            {players.find(p => p.id === currentTurnId)?.name}
-                        </strong>
-                        ...
-                    </p>
+            {/* turn banner */}
+            <div className={`turn-banner ${isMyTurn ? "myturn" : "waiting"}`}>
+                {isMyTurn
+                    ? "👉 Your turn — give a clue!"
+                    : `Waiting for ${currentTurnPlayer?.avatar} ${currentTurnPlayer?.name}...`}
+            </div>
+
+            {/* chat messages */}
+            <div className="chat-area" ref={chatRef}>
+                {messages.map(m => (
+                    <div key={m.id} className="clue-block">
+                        <div className="clue-meta">
+                            <span className="clue-meta-ava">{m.avatar}</span>
+                            <span className={`clue-meta-name ${m.uid === uid ? "me" : ""}`}>{m.playerName}</span>
+                        </div>
+                        <div className={`clue-bubble ${m.uid === uid ? "me" : ""}`}>{m.text}</div>
+                    </div>
+                ))}
+                {messages.length === 0 && (
+                    <p className="muted-text" style={{ margin: "auto" }}>No clues yet — the first player starts!</p>
                 )}
             </div>
 
             {/* input */}
-            <div className="chat-input">
+            <div className="chat-bar">
                 <input
                     placeholder={
-                        !myPlayer?.isAlive ? "Your are eliminated"
-                            : !isMyTurn ? "It's not your turn..."
-                                : "Give a clue..."
+                        !myPlayer?.isAlive ? "You are eliminated"
+                            : !isMyTurn ? "Not your turn..."
+                                : "Your clue..."
                     }
                     value={input}
                     disabled={!myPlayer?.isAlive || !isMyTurn}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && sendMessage()}
                 />
-                <button onClick={sendMessage} disabled={!myPlayer?.isAlive}>
-                    Submit
+                <button className="btn-send" onClick={sendMessage} disabled={!myPlayer?.isAlive || !isMyTurn}>
+                    ➤
                 </button>
             </div>
-
-            {/* host can trigger vote */}
-            {isHost && (
-                <button onClick={goToVote} className="vote-trigger">
-                    🗳️ Pass to vote
-                </button>
-            )}
         </div>
     );
 }

@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
-import {
-    doc, collection, onSnapshot, updateDoc, writeBatch, getDocs,
-} from "firebase/firestore";
+import { doc, collection, onSnapshot, updateDoc, writeBatch, getDocs } from "firebase/firestore";
+
+const WINNER_CFG = {
+    civilians:    { emoji: "🎉", text: "Civilians win!",                          color: "var(--civilian)", rgb: "74,222,128" },
+    impostors:    { emoji: "😈", text: "Impostors win!",                          color: "var(--impostor)", rgb: "230,57,70" },
+    mrWhite:      { emoji: "👻", text: "Mr. White wins!",                         color: "var(--mrwhite)",  rgb: "167,139,250" },
+    mrWhiteGuess: { emoji: "👻", text: "Impostor out — Mr. White can still win!", color: "var(--mrwhite)",  rgb: "167,139,250" },
+};
 
 export default function Result() {
     const { code } = useParams();
@@ -13,11 +18,10 @@ export default function Result() {
     const [room, setRoom] = useState(null);
     const [players, setPlayers] = useState([]);
     const [eliminated, setEliminated] = useState(null);
-    const [impostors, setImpostors] = useState([]);
-    const [winner, setWinner] = useState(null); // "civilians" | "impostors" | "mrWhite"
+    const [winner, setWinner] = useState(null);
 
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, "rooms", code), (snap) => {
+        const unsub = onSnapshot(doc(db, "rooms", code), snap => {
             if (!snap.exists()) return;
             setRoom(snap.data());
         });
@@ -25,37 +29,24 @@ export default function Result() {
     }, [code]);
 
     useEffect(() => {
-        const unsub = onSnapshot(
-            collection(db, "rooms", code, "players"),
-            (snap) => {
-                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                setPlayers(list);
+        const unsub = onSnapshot(collection(db, "rooms", code, "players"), snap => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setPlayers(list);
 
-                const eliminatedId = room?.lastEliminated;
-                const eliminatedPlayer = list.find(p => p.id === eliminatedId);
-                setEliminated(eliminatedPlayer ?? null);
+            const elim = list.find(p => p.id === room?.lastEliminated);
+            setEliminated(elim ?? null);
 
-                const impostorList = list.filter(p => p.role === "impostor");
-                setImpostors(impostorList);
-
-                // determine winner
-                if (eliminatedPlayer) {
-                    if (eliminatedPlayer.role === "impostor") {
-                        // check if mrWhite can still guess
-                        const mrWhite = list.find(p => p.role === "mrWhite");
-                        if (mrWhite && mrWhite.isAlive) {
-                            setWinner("mrWhiteGuess");
-                        } else {
-                            setWinner("civilians");
-                        }
-                    } else if (eliminatedPlayer.role === "mrWhite") {
-                        setWinner("civilians");
-                    } else {
-                        setWinner("impostors");
-                    }
+            if (elim) {
+                if (elim.role === "impostor") {
+                    const mrWhite = list.find(p => p.role === "mrWhite");
+                    setWinner(mrWhite?.isAlive ? "mrWhiteGuess" : "civilians");
+                } else if (elim.role === "mrWhite") {
+                    setWinner("civilians");
+                } else {
+                    setWinner("impostors");
                 }
             }
-        );
+        });
         return () => unsub();
     }, [code, room?.lastEliminated]);
 
@@ -63,23 +54,20 @@ export default function Result() {
     const currentRound = room?.currentRound ?? 1;
     const totalRounds = room?.settings?.roundCount ?? 3;
     const isLastRound = currentRound >= totalRounds;
+    const cfg = winner ? WINNER_CFG[winner] : null;
+
+    const ROLE_LABEL = { civilian: "Civilian", impostor: "Impostor", mrWhite: "Mr. White" };
+    const ROLE_COLOR = { civilian: "var(--civilian)", impostor: "var(--impostor)", mrWhite: "var(--mrwhite)" };
 
     const handleNextRound = async () => {
-        // reset messages
         const msgSnap = await getDocs(collection(db, "rooms", code, "messages"));
         const batch = writeBatch(db);
         msgSnap.docs.forEach(d => batch.delete(d.ref));
-
-        // reset players alive status
         players.forEach(p => {
             batch.update(doc(db, "rooms", code, "players", p.id), {
-                isAlive: true,
-                hasVoted: false,
-                votedFor: null,
-                ready: false,
+                isAlive: true, hasVoted: false, votedFor: null, ready: false,
             });
         });
-
         batch.update(doc(db, "rooms", code), { status: "settings" });
         await batch.commit();
         navigate(`/settings/${code}`);
@@ -90,86 +78,70 @@ export default function Result() {
         navigate(`/lobby/${code}`);
     };
 
-    const WINNER_MSG = {
-        civilians: { emoji: "🎉", text: "Civilians have winned !", color: "#4ade80" },
-        impostors: { emoji: "😈", text: "Impostors have winned !", color: "#f87171" },
-        mrWhite: { emoji: "👻", text: "Mr. White have winned !", color: "#a78bfa" },
-        mrWhiteGuess: { emoji: "👻", text: "Impostor is eliminated... Mr. White can still win !", color: "#a78bfa" },
-    };
-
-    const winnerInfo = winner ? WINNER_MSG[winner] : null;
-
     return (
         <div className="page">
-            <h2>Results</h2>
-
-            {winnerInfo && (
-                <div className="winner-banner" style={{ borderColor: winnerInfo.color }}>
-                    <span className="winner-emoji">{winnerInfo.emoji}</span>
-                    <span style={{ color: winnerInfo.color }}>{winnerInfo.text}</span>
+            {/* winner banner */}
+            {cfg && (
+                <div
+                    className="winner-block fu"
+                    style={{
+                        background: `rgba(${cfg.rgb},0.07)`,
+                        border: `1px solid rgba(${cfg.rgb},0.22)`,
+                    }}
+                >
+                    <span className="winner-emoji">{cfg.emoji}</span>
+                    <span className="winner-label" style={{ color: cfg.color }}>{cfg.text}</span>
                 </div>
             )}
 
             {/* eliminated player */}
             {eliminated && (
-                <div className="eliminated-card">
-                    <p>Player Eliminated</p>
-                    <span className="avatar">{eliminated.avatar}</span>
-                    <span>{eliminated.name}</span>
-                    <span className="role-tag" style={{
-                        color: eliminated.role === "impostor" ? "#f87171"
-                            : eliminated.role === "mrWhite" ? "#a78bfa" : "#4ade80"
-                    }}>
-                    {eliminated.role === "impostor" ? "⚠Impostor"
-                        : eliminated.role === "mrWhite" ? "Mr. White"
-                            : "Civilian"}
-                  </span>
+                <div className="elim-card fu1">
+                    <span className="elim-ava">{eliminated.avatar}</span>
+                    <div className="elim-info">
+                        <div className="elim-name">{eliminated.name}</div>
+                        <div className="elim-role" style={{ color: ROLE_COLOR[eliminated.role] }}>
+                            {ROLE_LABEL[eliminated.role]}
+                        </div>
+                    </div>
+                    <span className="elim-tag" style={{ color: "var(--muted)" }}>Eliminated</span>
                 </div>
             )}
 
             {/* word reveal */}
-            <div className="word-reveal-section">
-                <p>Civilians Word : <strong>{room?.wordPair?.civilian}</strong></p>
-                <p>Impostors Word : <strong>{room?.wordPair?.impostor}</strong></p>
+            <div className="words-grid fu2">
+                <div className="word-chip">
+                    <div className="word-chip-label">Civilians</div>
+                    <div className="word-chip-val" style={{ color: "var(--civilian)" }}>{room?.wordPair?.civilian}</div>
+                </div>
+                <div className="word-chip">
+                    <div className="word-chip-label">Impostor</div>
+                    <div className="word-chip-val" style={{ color: "var(--impostor)" }}>{room?.wordPair?.impostor}</div>
+                </div>
             </div>
 
-            {/* all roles revealed */}
-            <div className="roles-list">
+            {/* all roles */}
+            <div className="roles-list fu3">
                 {players.map(p => (
                     <div key={p.id} className="role-row">
-                        <span>{p.avatar}</span>
-                        <span>{p.name}</span>
-                        <span className="role-tag" style={{
-                            color: p.role === "impostor" ? "#f87171"
-                                : p.role === "mrWhite" ? "#a78bfa" : "#4ade80"
-                        }}>
-                      {p.role === "impostor" ? "Impostor"
-                          : p.role === "mrWhite" ? "Mr. White"
-                              : "Civilian"}
-                    </span>
+                        <span className="role-row-ava">{p.avatar}</span>
+                        <span className="role-row-name">{p.name}{p.id === uid ? " (you)" : ""}</span>
+                        <span className={`role-pill ${p.role}`}>{ROLE_LABEL[p.role]}</span>
                     </div>
                 ))}
             </div>
 
-            {/* round counter */}
-            <p className="round-info">Round {currentRound} / {totalRounds}</p>
+            <p className="eyebrow fu4">Round {currentRound} / {totalRounds}</p>
 
-            {/* host controls */}
-            {isHost && (
-                <div className="btn-group">
+            {isHost ? (
+                <div className="stack fu5">
                     {!isLastRound && (
-                        <button onClick={handleNextRound}>
-                            ▶️ Next Round
-                        </button>
+                        <button className="btn-gold" onClick={handleNextRound}>▶️ Next round</button>
                     )}
-                    <button onClick={handleEndGame} className="secondary">
-                        🏠 Return to lobby
-                    </button>
+                    <button className="btn-secondary" onClick={handleEndGame}>🏠 Back to lobby</button>
                 </div>
-            )}
-
-            {!isHost && (
-                <p className="waiting">Waiting Host...</p>
+            ) : (
+                <p className="muted-text fu4">Waiting for the host...</p>
             )}
         </div>
     );

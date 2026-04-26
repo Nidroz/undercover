@@ -1,9 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import {
-    doc, collection, onSnapshot, updateDoc,
-} from "firebase/firestore";
-import {db} from "../lib/firebase.js";
+import { doc, collection, onSnapshot, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase.js";
 
 export default function Lobby() {
     const { code } = useParams();
@@ -15,65 +13,75 @@ export default function Lobby() {
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        const roomRef = doc(db, "rooms", code);
-        const unsubRoom = onSnapshot(roomRef, snap => {
+        const unsubRoom = onSnapshot(doc(db, "rooms", code), snap => {
             if (!snap.exists()) return;
             const data = snap.data();
             setRoom(data);
-            // redirect when host starts
             if (data.status === "settings") navigate(`/settings/${code}`);
         });
-
-        const playersRef = collection(db, "rooms", code, "players");
-        const unsubPlayers = onSnapshot(playersRef, snap => {
-            setPlayers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const unsubPlayers = onSnapshot(collection(db, "rooms", code, "players"), snap => {
+            setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         });
-
         return () => { unsubRoom(); unsubPlayers(); };
     }, [code, navigate]);
 
     const isHost = room?.hostId === uid;
     const link = `${window.location.origin}/join/${code}`;
+
     const copyLink = async () => {
         await navigator.clipboard.writeText(link);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setTimeout(() => setCopied(false), 2200);
     };
 
     const startGame = async () => {
-        if (players.length < 3) return alert("At least 3 players are required to start the game");
-        const roomRef = doc(db, "rooms", code);
+        if (players.length < 3) return;
         await updateDoc(doc(db, "rooms", code), { status: "settings" });
-    }
+    };
 
     return (
         <div className="page">
-            <h2>Waiting Room</h2>
+            <div className="fu" style={{ textAlign: "center" }}>
+                <p className="eyebrow">Waiting room</p>
+                <h2 style={{ marginTop: 4 }}>Waiting for players</h2>
+            </div>
 
-            <div className="room-code">
-                <span>Code : <strong>{code}</strong></span>
-                <button onClick={copyLink} className="small">
-                    {copied ? "Copied" : "Copy link"}
+            {/* room code + copy */}
+            <div className="code-block fu1">
+                <span className="code-letters">{code}</span>
+                <button className={`btn-icon ${copied ? "done" : ""}`} onClick={copyLink}>
+                    {copied ? "✓ Copied" : "Copy link"}
                 </button>
             </div>
 
-            <div className="players-list">
-                {players.map(p => (
-                    <div key={p.id} className="player-card">
-                        <span className="avatar">{p.avatar}</span>
-                        <span>{p.name}</span>
-                        {p.isHost && <span className="badge">Host</span>}
+            {/* player list */}
+            <div className="stack-sm fu2">
+                {players.map((p, i) => (
+                    <div key={p.id} className="player-row" style={{ animationDelay: `${i * 0.05}s` }}>
+                        <span className="player-ava">{p.avatar}</span>
+                        <span className="player-name">{p.name}</span>
+                        {p.isHost && <span className="badge-host">Host</span>}
+                        {p.id === uid && !p.isHost && <span className="badge-you">you</span>}
                     </div>
                 ))}
             </div>
 
-            {isHost ? (
-                <button onClick={startGame} disabled={players.length < 3}>
-                    Start the game ({players.length} players)
-                </button>
-            ) : (
-                <p className="waiting">Waiting host...</p>
-            )}
+            {/* cta */}
+            <div className="fu3" style={{ width: "100%" }}>
+                {isHost ? (
+                    <button
+                        className="btn-primary"
+                        onClick={startGame}
+                        disabled={players.length < 3}
+                    >
+                        {players.length < 3
+                            ? `Waiting for players (${players.length}/3)`
+                            : `Start — ${players.length} players`}
+                    </button>
+                ) : (
+                    <p className="muted-text">Waiting for the host to start...</p>
+                )}
+            </div>
         </div>
     );
 }

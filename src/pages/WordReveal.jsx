@@ -1,7 +1,7 @@
-import {useNavigate, useParams} from "react-router-dom";
-import {useEffect, useState} from "react";
-import {collection, doc, getDoc, onSnapshot, updateDoc} from "firebase/firestore";
-import {db} from "../lib/firebase.js";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { collection, doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase.js";
 
 export default function WordReveal() {
     const { code } = useParams();
@@ -13,18 +13,16 @@ export default function WordReveal() {
     const [players, setPlayers] = useState([]);
     const [room, setRoom] = useState(null);
 
-    // fetch current player info
     useEffect(() => {
-        const fetchPlayer = async () => {
+        const fetch = async () => {
             const snap = await getDoc(doc(db, "rooms", code, "players", uid));
             if (snap.exists()) setPlayer(snap.data());
         };
-        fetchPlayer();
+        fetch();
     }, [code, uid]);
 
-    // listen to room status → redirect when game starts
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, "rooms", code), (snap) => {
+        const unsub = onSnapshot(doc(db, "rooms", code), snap => {
             if (!snap.exists()) return;
             const data = snap.data();
             setRoom(data);
@@ -33,99 +31,98 @@ export default function WordReveal() {
         return () => unsub();
     }, [code, navigate]);
 
-    // listen to players to show ready count
     useEffect(() => {
-        const unsub = onSnapshot(
-            collection(db, "rooms", code, "players"),
-            (snap) => {
-                setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-            }
-        );
+        const unsub = onSnapshot(collection(db, "rooms", code, "players"), snap => {
+            setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
         return () => unsub();
     }, [code]);
-
-    useEffect(() => {
-        import("firebase/firestore").then(({ collection, onSnapshot: onSnap }) => {
-            const unsub = onSnap(
-                require === undefined ? null : { type: "collection" },
-                () => {}
-            )
-        });
-    }, []);
 
     const handleReady = async () => {
         await updateDoc(doc(db, "rooms", code, "players", uid), { ready: true });
         setRevealed(true);
+        // optimistically check if all are ready
         const done = players.every(p => p.id === uid ? true : p.ready);
-        if (done) {
-            await updateDoc(doc(db, "rooms", code), { status: "game" });
-        }
-    }
-
-    const readyCount = players.filter(p => p.ready).length;
-    const totalCount = players.length;
-    const isHost = room?.hostId === uid;
-
-    const ROLE_LABELS = {
-        civilian: { label: "Civil", color: "#2179c1" },
-        impostor: { label: "Impostor", color: "#f87171" },
-        mrWhite: { label: "Mr. White", color: "#a78bfa" },
+        if (done) await updateDoc(doc(db, "rooms", code), { status: "game" });
     };
 
-    const roleInfo = player ? ROLE_LABELS[player.role] : null;
+    const readyCount = players.filter(p => p.ready).length;
+    const isHost = room?.hostId === uid;
+    const myReady = players.find(p => p.id === uid)?.ready ?? false;
+
+    const roleClass = player?.role ?? "civilian";
+    const ROLE_LABEL = { civilian: "Civilian", impostor: "Impostor", mrWhite: "Mr. White" };
 
     return (
         <div className="page">
-            <h2>Your secret word</h2>
+            <p className="eyebrow fu">Your secret word</p>
 
             {!player ? (
-                <p>Loading...</p>
+                <p className="muted-text">Loading...</p>
             ) : !revealed ? (
-                <div className="reveal-container">
-                    <p className="reveal-hint">Be sure to be the only one watching your screen</p>
-                    <div className="word-card hidden">
-                        <span>Press to reveal</span>
+                <>
+                    {/* tap to reveal card */}
+                    <div
+                        className="word-reveal-card fu1"
+                        style={{ cursor: "pointer", minHeight: 180, justifyContent: "center" }}
+                        onClick={() => setRevealed(true)}
+                    >
+                        <span style={{ fontSize: 52 }}>🃏</span>
+                        <p style={{ color: "var(--muted)", fontSize: 15, fontWeight: 500 }}>Tap to reveal your word</p>
+                        <p style={{ color: "var(--muted2)", fontSize: 13 }}>Make sure no one else is watching</p>
                     </div>
-                    <button onClick={() => setRevealed(true)} className="reveal-btn">
-                        Reveal my word
+                    <button className="btn-primary fu2" onClick={() => setRevealed(true)}>
+                        👁️ Reveal my word
                     </button>
-                </div>
+                </>
             ) : (
-                <div className="reveal-container">
-                    <div className="word-card" style={{borderColor: roleInfo?.color}}>
-                        {player.role === "mrWhite" ? (
-                            <span className="word-text">???</span>
-                        ) : (
-                            <span className="word-text">{player.word}</span>
+                <>
+                    {/* word card */}
+                    <div className={`word-reveal-card ${roleClass} fu1`}>
+                        <span className={`role-pill ${roleClass}`}>{ROLE_LABEL[player.role]}</span>
+                        <span className="word-big">
+              {player.role === "mrWhite" ? "???" : player.word}
+            </span>
+                        {player.role === "mrWhite" && (
+                            <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", maxWidth: 240 }}>
+                                You have no word. Blend in and try to guess the civilian word.
+                            </p>
                         )}
-                        <span className="role-label" style={{color: roleInfo?.color}}>
-                          {roleInfo?.label}
-                        </span>
                     </div>
 
-                    <div className="ready-status">
-                        <p>{readyCount} / {totalCount} players ready</p>
-                        <div className="players-ready">
+                    {/* ready status */}
+                    <div className="card fu2" style={{ textAlign: "center" }}>
+                        <p className="eyebrow" style={{ marginBottom: 12 }}>
+                            {readyCount} / {players.length} ready
+                        </p>
+                        <div className="ready-avatars">
                             {players.map(p => (
-                                <span key={p.id} className={`player-dot ${p.ready ? "ready" : ""}`}>
-                                  {p.avatar}
-                                </span>
+                                <span key={p.id} className={`ready-ava ${p.ready ? "done" : ""}`} title={p.name}>
+                  {p.avatar}
+                </span>
                             ))}
                         </div>
                     </div>
 
-                    {!players.find(p => p.id === uid)?.ready && (
-                        <button onClick={handleReady}>
-                            I memorized my word, I'm ready !
+                    {!myReady && (
+                        <button className="btn-primary fu3" onClick={handleReady}>
+                            ✅ I memorized my word
                         </button>
                     )}
 
-                    {isHost && readyCount === totalCount && totalCount > 0 && (
-                        <button onClick={() => updateDoc(doc(db, "rooms", code), {status: "game"})} className="primary">
-                            All ready — Launch !
+                    {isHost && readyCount === players.length && players.length > 0 && (
+                        <button
+                            className="btn-gold fu4"
+                            onClick={() => updateDoc(doc(db, "rooms", code), { status: "game" })}
+                        >
+                            🚀 Everyone's ready — Start!
                         </button>
                     )}
-                </div>
+
+                    {myReady && !(isHost && readyCount === players.length) && (
+                        <p className="muted-text fu3">Waiting for others...</p>
+                    )}
+                </>
             )}
         </div>
     );

@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
-import {
-    doc, collection, onSnapshot, updateDoc, writeBatch,
-} from "firebase/firestore";
+import { doc, collection, onSnapshot, updateDoc, writeBatch } from "firebase/firestore";
 
 export default function Vote() {
     const { code } = useParams();
@@ -17,7 +15,7 @@ export default function Vote() {
     const [hasVoted, setHasVoted] = useState(false);
 
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, "rooms", code), async (snap) => {
+        const unsub = onSnapshot(doc(db, "rooms", code), snap => {
             if (!snap.exists()) return;
             const data = snap.data();
             setRoom(data);
@@ -27,96 +25,88 @@ export default function Vote() {
     }, [code, navigate]);
 
     useEffect(() => {
-        const unsub = onSnapshot(
-            collection(db, "rooms", code, "players"),
-            (snap) => {
-                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                setPlayers(list);
-                const me = list.find(p => p.id === uid);
-                setMyPlayer(me ?? null);
-                setHasVoted(me?.hasVoted ?? false);
+        const unsub = onSnapshot(collection(db, "rooms", code, "players"), snap => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setPlayers(list);
+            const me = list.find(p => p.id === uid);
+            setMyPlayer(me ?? null);
+            setHasVoted(me?.hasVoted ?? false);
 
-                // check if all alive players voted → resolve
-                const alive = list.filter(p => p.isAlive);
-                const allVoted = alive.length > 0 && alive.every(p => p.hasVoted);
-                if (allVoted) resolveVote(list);
-            }
-        );
+            const alive = list.filter(p => p.isAlive);
+            const allVoted = alive.length > 0 && alive.every(p => p.hasVoted);
+            if (allVoted) resolveVote(list);
+        });
         return () => unsub();
     }, [code, uid]);
 
     const resolveVote = async (playerList) => {
-        // count votes
         const counts = {};
         playerList.filter(p => p.isAlive).forEach(p => {
             if (p.votedFor) counts[p.votedFor] = (counts[p.votedFor] ?? 0) + 1;
         });
-
-        // find most voted
         const eliminated = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
         if (!eliminated) return;
 
         const batch = writeBatch(db);
-
-        // eliminate player
-        const eliminateRef = doc(db, "rooms", code, "players", eliminated);
-        batch.update(eliminateRef, { isAlive: false });
-
-        // reset votes
+        batch.update(doc(db, "rooms", code, "players", eliminated), { isAlive: false });
         playerList.forEach(p => {
-            batch.update(doc(db, "rooms", code, "players", p.id), {
-                hasVoted: false,
-                votedFor: null,
-            });
+            batch.update(doc(db, "rooms", code, "players", p.id), { hasVoted: false, votedFor: null });
         });
-
-        batch.update(doc(db, "rooms", code), {
-            status: "result",
-            lastEliminated: eliminated,
-        });
-
+        batch.update(doc(db, "rooms", code), { status: "result", lastEliminated: eliminated });
         await batch.commit();
     };
 
     const castVote = async () => {
         if (!selected || hasVoted || !myPlayer?.isAlive) return;
-        await updateDoc(doc(db, "rooms", code, "players", uid), {
-            hasVoted: true,
-            votedFor: selected,
-        });
+        await updateDoc(doc(db, "rooms", code, "players", uid), { hasVoted: true, votedFor: selected });
     };
 
     const alivePlayers = players.filter(p => p.isAlive && p.id !== uid);
     const voteCount = players.filter(p => p.isAlive && p.hasVoted).length;
     const aliveCount = players.filter(p => p.isAlive).length;
+    const progress = aliveCount > 0 ? (voteCount / aliveCount) * 100 : 0;
 
     return (
         <div className="page">
-            <h2>🗳️ Vote</h2>
-            <p>Who is the impostor ?</p>
+            <div className="fu" style={{ textAlign: "center" }}>
+                <p className="eyebrow">Voting phase</p>
+                <h2 style={{ marginTop: 4 }}>Who's the impostor?</h2>
+            </div>
 
-            <p className="vote-count">{voteCount} / {aliveCount} votes</p>
+            {/* vote progress */}
+            <div className="card fu1" style={{ gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--muted)" }}>
+                    <span>Votes cast</span>
+                    <span>{voteCount} / {aliveCount}</span>
+                </div>
+                <div className="progress-bar-wrap">
+                    <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+                </div>
+            </div>
 
             {!hasVoted && myPlayer?.isAlive ? (
                 <>
-                    <div className="vote-list">
+                    <div className="vote-grid fu2">
                         {alivePlayers.map(p => (
                             <div
                                 key={p.id}
-                                className={`vote-card ${selected === p.id ? "selected" : ""}`}
+                                className={`vote-card ${selected === p.id ? "sel" : ""}`}
                                 onClick={() => setSelected(p.id)}
                             >
-                                <span className="avatar">{p.avatar}</span>
-                                <span>{p.name}</span>
+                                <span className="vote-ava">{p.avatar}</span>
+                                <span className="vote-name">{p.name}</span>
                             </div>
                         ))}
                     </div>
-                    <button onClick={castVote} disabled={!selected}>
-                        Vote
+                    <button className="btn-primary fu3" onClick={castVote} disabled={!selected}>
+                        Cast vote
                     </button>
                 </>
             ) : (
-                <p className="waiting">Vote saved, waiting for others...</p>
+                <div className="fu2" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 44 }}>✅</span>
+                    <p className="muted-text">Vote cast — waiting for others...</p>
+                </div>
             )}
         </div>
     );
