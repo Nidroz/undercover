@@ -34,9 +34,8 @@ function App() {
         <Route path="/game/:code" element={<Game />}/>
         <Route path="/vote/:code" element={<Vote />}/>
         <Route path="/result/:code" element={<Result />}/>
-
-        <Route path="/" element={<BugReport />}/>
       </Routes>
+      <BugReport />
     </BrowserRouter>
   )
 }
