@@ -19,7 +19,6 @@ export default function Home() {
             navigate(`/lobby/${room.code}`);
         } catch (err) {
             setError(err.message);
-            setLoading(false);
         } finally {
             setLoading(false);
         }
@@ -35,7 +34,6 @@ export default function Home() {
             navigate(`/lobby/${room.code}`);
         } catch (err) {
             setError(err.message);
-            setLoading(false);
         } finally {
             setLoading(false);
         }

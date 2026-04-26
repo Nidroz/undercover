@@ -69,3 +69,7 @@ export const getRandomPair = (theme) => {
     const pairs = WORD_BANK[theme];
     return pairs[Math.floor(Math.random() * pairs.length)];
 };
+export const getRandomPairAnyTheme = () => {
+    const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
+    return getRandomPair(theme);
+};

@@ -3,6 +3,7 @@ import { signInAnonymously } from "firebase/auth";
 import {
     doc, setDoc, getDoc, updateDoc,
     collection, serverTimestamp,
+    increment
 } from "firebase/firestore";
 
 const generateCode = () => Math.random().toString(36).toUpperCase().slice(2, 8);
@@ -23,7 +24,7 @@ export const createRoom = async (playerName) => {
         settings: {
             impostorCount: 1,
             mrWhiteEnabled: false,
-            theme: "default",
+            theme: "random",
             customWords: null,
             roundCount: 3,
         },
@@ -64,6 +65,7 @@ export const joinRoom = async (code, playerName) => {
         role: null,
         word: null,
     });
+    await updateDoc(roomRef, { playerCount: increment(1) });
 
     return { code: code.toUpperCase(), uid: user.uid };
 }

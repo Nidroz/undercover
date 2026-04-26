@@ -1,4 +1,4 @@
-import { getRandomPair } from "./words.js";
+import {getRandomPair, getRandomPairAnyTheme} from "./words.js";
 import { collection, getDocs, doc, updateDoc, writeBatch } from "firebase/firestore";
 import {db} from "./firebase.js";
 
@@ -6,7 +6,7 @@ const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 export const startRound = async (roomCode, settings) => {
     const { impostorCount, mrWhiteEnabled, theme, customWords } = settings;
-    const pair = customWords ?? getRandomPair(theme);
+    const pair = customWords ?? getRandomPairAnyTheme(theme);
 
     const playersRef = collection(db, "rooms", roomCode, "players");
     const snap = await getDocs(playersRef);
@@ -16,7 +16,7 @@ export const startRound = async (roomCode, settings) => {
     let impostorsLeft = impostorCount;
     let mrWhiteAssigned = false;
 
-    players.foreach((player) => {
+    players.forEach((player) => {
         let role, word;
         if (impostorsLeft > 0) {
             role = "impostor";
@@ -32,7 +32,7 @@ export const startRound = async (roomCode, settings) => {
         }
 
         const playerRef = doc(db, "rooms", roomCode, "players", player.id);
-        batch.update(playerRef, { role, word, isAlive: true, hasVoted: false, votedFor: null });
+        batch.update(playerRef, { role, word, isAlive: true, hasVoted: false, votedFor: null, ready: false });
     });
 
     const roomRef = doc(db, "rooms", roomCode);
