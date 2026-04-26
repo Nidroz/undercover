@@ -16,6 +16,22 @@ export default function Game() {
     const [input, setInput] = useState("");
     const [myPlayer, setMyPlayer] = useState(null);
 
+    const playerOrder = room?.playerOrder ?? [];
+    const currentTurnIndex = room?.currentTurnIndex ?? 0;
+    const currentTurnId = playerOrder[currentTurnIndex];
+    const isMyTurn = currentTurnId === uid;
+
+    // function to pass turn to next player
+    const passTurn = async () => {
+        const nextIndex = currentTurnIndex + 1;
+        if (nextIndex >= playerOrder.length) {
+            // everyone has given a clue, host can now trigger vote or another round of clues
+            await updateDoc(doc(db, "rooms", code), { currentTurnIndex: 0, turnRound: (room?.turnRound ?? 1) + 1 });
+        } else {
+            await updateDoc(doc(db, "rooms", code), { currentTurnIndex: nextIndex });
+        }
+    };
+
     // listen to room
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "rooms", code), (snap) => {
@@ -63,6 +79,8 @@ export default function Game() {
             text,
             createdAt: new Date(),
         });
+        // auto-pass turn after sending clue
+        await passTurn();
     };
 
     const goToVote = async () => {
@@ -103,12 +121,32 @@ export default function Game() {
                 ))}
             </div>
 
+            {/* current turn indicator */}
+            <div className="turn-indicator">
+                {isMyTurn ? (
+                    <p className="your-turn">👉 It's your turn to give a clue !</p>
+                ) : (
+                    <p>
+                        Waiting for{" "}
+                        <strong>
+                            {players.find(p => p.id === currentTurnId)?.avatar}{" "}
+                            {players.find(p => p.id === currentTurnId)?.name}
+                        </strong>
+                        ...
+                    </p>
+                )}
+            </div>
+
             {/* input */}
             <div className="chat-input">
                 <input
-                    placeholder={myPlayer?.isAlive ? "Donne un indice..." : "Vous êtes éliminé"}
+                    placeholder={
+                        !myPlayer?.isAlive ? "Your are eliminated"
+                            : !isMyTurn ? "It's not your turn..."
+                                : "Give a clue..."
+                    }
                     value={input}
-                    disabled={!myPlayer?.isAlive}
+                    disabled={!myPlayer?.isAlive || !isMyTurn}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && sendMessage()}
                 />

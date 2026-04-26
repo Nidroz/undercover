@@ -36,10 +36,13 @@ export const startRound = async (roomCode, settings) => {
     });
 
     const roomRef = doc(db, "rooms", roomCode);
+    const playerOrder = players.map(p => p.id);
     batch.update(roomRef, {
         status: "reveal",
         wordPair: pair,
         currentRound: (settings.currentRound ?? 0) + 1,
+        playerOrder,            // array of player ids in turn order
+        currentTurnIndex: 0,  // index in playerOrder
     });
 
     await batch.commit();

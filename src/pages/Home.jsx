@@ -1,19 +1,24 @@
 import {useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { createRoom, joinRoom } from "../lib/room";
+import { randomAvatar } from "../lib/room";
 
 export default function Home() {
-    const navigate = useNavigate();const [name, setName] = useState("");
+    const navigate = useNavigate();
+    const [name, setName] = useState("");
     const [code, setCode] = useState("");
     const [mode, setMode] = useState(null); // "create" | "join"
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
+    const AVATARS = ["🦊","🐼","🐸","🦁","🐯","🐺","🦝","🐻","🐨","🦄","🐙","🦋","🐵","🐧","🦆","🦊","🐮","🐷","🐹","🐭"];
+    const [avatar, setAvatar] = useState(randomAvatar);
+
     const handleCreate = async () => {
         if (!name.trim()) return setError("Enter your pseudo");
         setLoading(true);
         try {
-            const room = await createRoom(name);
+            const room = await createRoom(name, avatar);
             // store uid in sessionStorage so we know who we are
             sessionStorage.setItem("uid", room.uid);
             navigate(`/lobby/${room.code}`);
@@ -29,7 +34,7 @@ export default function Home() {
         if (!code.trim()) return setError("Enter the room code");
         setLoading(true);
         try {
-            const room = await joinRoom(code, name.trim());
+            const room = await joinRoom(code, name.trim(), avatar);
             sessionStorage.setItem("uid", room.uid);
             navigate(`/lobby/${room.code}`);
         } catch (err) {
@@ -68,6 +73,20 @@ export default function Home() {
                         onChange={e => setName(e.target.value)}
                         maxLength={16}
                     />
+                    <div className="avatar-picker">
+                        <p>Choose your avatar</p>
+                        <div className="avatar-grid">
+                            {AVATARS.map(a => (
+                                <button
+                                    key={a}
+                                    className={`avatar-btn ${avatar === a ? "active" : ""}`}
+                                    onClick={() => setAvatar(a)}
+                                >
+                                    {a}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     {mode === "join" && (
                         <input
                             placeholder="Room Code"

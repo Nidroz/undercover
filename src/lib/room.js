@@ -9,9 +9,9 @@ import {
 const generateCode = () => Math.random().toString(36).toUpperCase().slice(2, 8);
 
 const AVATARS = ["🦊","🐼","🐸","🦁","🐯","🐺","🦝","🐻","🐨","🦄","🐙","🦋"];
-const randomAvatar = () => AVATARS[Math.floor(Math.random() * AVATARS.length)];
+export const randomAvatar = () => AVATARS[Math.floor(Math.random() * AVATARS.length)];
 
-export const createRoom = async (playerName) => {
+export const createRoom = async (playerName, avatar) => {
     const { user } = await signInAnonymously(auth);
     const code= generateCode();
 
@@ -34,7 +34,7 @@ export const createRoom = async (playerName) => {
     const playerRef = doc(collection(roomRef, "players"), user.uid);
     await setDoc(playerRef, {   // add host as first player
         name: playerName,
-        avatar: randomAvatar(),
+        avatar: avatar,
         isHost: true,
         isAlive: true,
         hasVoted: false,
@@ -46,7 +46,7 @@ export const createRoom = async (playerName) => {
     return { code, uid: user.uid};
 }
 
-export const joinRoom = async (code, playerName) => {
+export const joinRoom = async (code, playerName, avatar) => {
     const { user } = await signInAnonymously(auth);
     const roomRef = doc(db, "rooms", code.toUpperCase());
     const roomSnap = await getDoc(roomRef);
@@ -57,7 +57,7 @@ export const joinRoom = async (code, playerName) => {
     const playerRef = doc(collection(roomRef, "players"), user.uid);
     await setDoc(playerRef, {
         name: playerName,
-        avatar: randomAvatar(),
+        avatar: avatar,
         isHost: false,
         isAlive: true,
         hasVoted: false,
