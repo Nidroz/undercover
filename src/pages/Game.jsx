@@ -14,6 +14,7 @@ export default function Game() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [myPlayer, setMyPlayer] = useState(null);
+    const [wordVisible, setWordVisible] = useState(false);
 
     const playerOrder = room?.playerOrder ?? [];
     const currentTurnIndex = room?.currentTurnIndex ?? 0;
@@ -85,6 +86,45 @@ export default function Game() {
             <div className="game-topbar">
                 <span className="game-title">Discussion</span>
                 <span className="round-pill">Round {room?.currentRound} / {room?.settings?.roundCount}</span>
+                <div style={{position: "relative"}}>
+                    <button
+                        className="btn-icon"
+                        onClick={() => setWordVisible(v => !v)}
+                        style={{fontSize: 13}}
+                    >
+                        🃏 My word
+                    </button>
+                    {wordVisible && (
+                        <div style={{
+                            position: "absolute", top: "calc(100% + 8px)", right: 0,
+                            background: "#111118", border: "1px solid rgba(255,255,255,0.12)",
+                            borderRadius: 14, padding: "14px 18px",
+                            display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                            zIndex: 100, minWidth: 140,
+                            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                            animation: "bubbleIn 0.18s ease",
+                        }}>
+                          <span className={`role-pill ${myPlayer?.role}`} style={{fontSize: 10}}>
+                            {myPlayer?.role === "impostor" ? "Impostor"
+                                : myPlayer?.role === "mrWhite" ? "Mr. White"
+                                    : "Civilian"}
+                          </span>
+                            <span style={{
+                                fontFamily: "'Bebas Neue', sans-serif",
+                                fontSize: 26, letterSpacing: 2, color: "var(--white)",
+                            }}>
+                                {myPlayer?.role === "mrWhite" ? "???" : myPlayer?.word}
+                              </span>
+                            <button
+                                className="btn-ghost"
+                                style={{fontSize: 12, padding: "4px 10px"}}
+                                onClick={() => setWordVisible(false)}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    )}
+                </div>
                 {isHost && (
                     <button className="btn-vote-trigger" onClick={goToVote}>🗳️ Vote</button>
                 )}

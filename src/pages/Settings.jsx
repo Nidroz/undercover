@@ -119,20 +119,20 @@ export default function Settings() {
             </div>
 
             {/* theme */}
-            <div className="fu2" style={{ width: "100%" }}>
-                <p className="eyebrow" style={{ marginBottom: 10 }}>Word theme</p>
-                <div className="theme-grid">
-                    {["random", ...THEMES].map(t => (
-                        <button
-                            key={t}
-                            className={`theme-btn ${settings.theme === t && !useCustom ? "active" : ""}`}
-                            onClick={() => { setSettings(s => ({ ...s, theme: t })); setUseCustom(false); }}
-                        >
-                            {THEME_LABELS[t]}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            {/*<div className="fu2" style={{ width: "100%" }}>*/}
+            {/*    <p className="eyebrow" style={{ marginBottom: 10 }}>Word theme</p>*/}
+            {/*    <div className="theme-grid">*/}
+            {/*        {["random", ...THEMES].map(t => (*/}
+            {/*            <button*/}
+            {/*                key={t}*/}
+            {/*                className={`theme-btn ${settings.theme === t && !useCustom ? "active" : ""}`}*/}
+            {/*                onClick={() => { setSettings(s => ({ ...s, theme: t })); setUseCustom(false); }}*/}
+            {/*            >*/}
+            {/*                {THEME_LABELS[t]}*/}
+            {/*            </button>*/}
+            {/*        ))}*/}
+            {/*    </div>*/}
+            {/*</div>*/}
 
             {/* custom words */}
             <div className="card fu3">
