@@ -9,6 +9,7 @@ import Wait from "./pages/Wait.jsx";
 import WordReveal from "./pages/WordReveal.jsx";
 import Game from "./pages/Game.jsx";
 import Vote from "./pages/Vote.jsx";
+import Result from "./pages/Result.jsx";
 
 function JoinRedirect() {
     const { code } = useParams();
@@ -31,6 +32,7 @@ function App() {
         <Route path="/reveal/:code" element={<WordReveal />}/>
         <Route path="/game/:code" element={<Game />}/>
         <Route path="/vote/:code" element={<Vote />}/>
+        <Route path="/result/:code" element={<Result />}/>
       </Routes>
     </BrowserRouter>
   )
