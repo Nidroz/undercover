@@ -7,7 +7,6 @@ const WINNER_CFG = {
     civilians:    { emoji: "🎉", text: "Civilians win!",                          color: "var(--civilian)", rgb: "74,222,128" },
     impostors:    { emoji: "😈", text: "Impostors win!",                          color: "var(--impostor)", rgb: "230,57,70" },
     mrWhite:      { emoji: "👻", text: "Mr. White wins!",                         color: "var(--mrwhite)",  rgb: "167,139,250" },
-    mrWhiteGuess: { emoji: "👻", text: "Impostor out — Mr. White can still win!", color: "var(--mrwhite)",  rgb: "167,139,250" },
 };
 
 export default function Result() {
@@ -44,7 +43,11 @@ export default function Result() {
             if (eliminated) {
                 if (eliminated.role === "impostor") {
                     const mrWhite = list.find(p => p.role === "mrWhite");
-                    setWinner(mrWhite?.isAlive ? "mrWhiteGuess" : "civilians");
+                    if (mrWhite?.isAlive) { // mrWhite has a guess
+                        setWinner("mrWhitePending");
+                    } else {
+                        setWinner("civilians");
+                    }
                 } else if (eliminated.role === "mrWhite") {
                     setWinner("civilians");
                 } else {
@@ -59,7 +62,11 @@ export default function Result() {
     const currentRound = room?.currentRound ?? 1;
     const totalRounds = room?.settings?.roundCount ?? 3;
     const isLastRound = currentRound >= totalRounds;
-    const cfg = winner ? WINNER_CFG[winner] : null;
+
+    const resolvedWinner = winner === "mrWhitePending"
+        ? (room?.mrWhiteWon ? "mrWhite" : "civilians")
+        : winner;
+    const cfg = resolvedWinner ? WINNER_CFG[resolvedWinner] : null;
 
     const ROLE_LABEL = { civilian: "Civilian", impostor: "Impostor", mrWhite: "Mr. White" };
     const ROLE_COLOR = { civilian: "var(--civilian)", impostor: "var(--impostor)", mrWhite: "var(--mrwhite)" };
@@ -124,6 +131,23 @@ export default function Result() {
                     <div className="word-chip-val" style={{ color: "var(--impostor)" }}>{room?.wordPair?.impostor}</div>
                 </div>
             </div>
+
+            {/* mr white guess reveal */}
+            {room?.mrWhiteGuess && (
+                <div className="card fu2" style={{ textAlign: "center" }}>
+                    <p className="eyebrow" style={{ marginBottom: 6 }}>Mr. White guessed</p>
+                    <span style={{
+                        fontFamily: "'Bebas Neue', sans-serif", fontSize: 28,
+                        color: room.mrWhiteWon ? "var(--mrwhite)" : "var(--muted)",
+                        letterSpacing: 2,
+                        }}>
+                      "{room.mrWhiteGuess}"
+                    </span>
+                    <p style={{ fontSize: 13, marginTop: 6, color: room.mrWhiteWon ? "var(--mrwhite)" : "var(--impostor)" }}>
+                        {room.mrWhiteWon ? "✅ Correct!" : "❌ Wrong!"}
+                    </p>
+                </div>
+            )}
 
             {/* all roles */}
             <div className="roles-list fu3">

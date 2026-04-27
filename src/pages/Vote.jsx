@@ -20,6 +20,7 @@ export default function Vote() {
             const data = snap.data();
             setRoom(data);
             if (data.status === "result") navigate(`/result/${code}`);
+            if (data.status === "mrWhiteGuess") navigate(`/mrwhite/${code}`);
         });
         return () => unsub();
     }, [code, navigate]);
@@ -44,15 +45,25 @@ export default function Vote() {
         playerList.filter(p => p.isAlive).forEach(p => {
             if (p.votedFor) counts[p.votedFor] = (counts[p.votedFor] ?? 0) + 1;
         });
-        const eliminated = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
-        if (!eliminated) return;
+        const eliminatedId = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (!eliminatedId) return;
+
+        const eliminatedPlayer = playerList.find(p => p.id === eliminatedId);
+        const mrWhite = playerList.find(p => p.role === "mrWhite" && p.isAlive && p.id !== eliminatedId);
 
         const batch = writeBatch(db);
-        batch.update(doc(db, "rooms", code, "players", eliminated), { isAlive: false });
+        batch.update(doc(db, "rooms", code, "players", eliminatedId), { isAlive: false });
         playerList.forEach(p => {
             batch.update(doc(db, "rooms", code, "players", p.id), { hasVoted: false, votedFor: null });
         });
-        batch.update(doc(db, "rooms", code), { status: "result", lastEliminated: eliminated });
+
+        // if impostor eliminated, check if mrWhite can still win (i.e. is alive) -> give mrWhite a guess
+        if (eliminatedPlayer?.role === "impostor" && mrWhite) {
+            batch.update(doc(db, "rooms", code), { status: "mrWhiteGuess", lastEliminated: eliminatedId, mrWhiteUid: mrWhite.id });
+        } else {
+            batch.update(doc(db, "rooms", code), { status: "result", lastEliminated: eliminatedId });
+        }
+
         await batch.commit();
     };
 

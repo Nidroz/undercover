@@ -13,6 +13,7 @@ export default function Wait() {
             const { status } = snap.data();
             if (status === "reveal") navigate(`/reveal/${code}`);
             if (status === "lobby") navigate(`/lobby/${code}`);
+            if (status === "mrWhiteGuess") navigate(`/mrwhite/${code}`);
         });
         return () => unsub();
     }, [code, navigate]);
