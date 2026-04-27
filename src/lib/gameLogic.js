@@ -1,12 +1,12 @@
-import {getRandomPair, getRandomPairAnyTheme} from "./words.js";
+import {getRandomPair} from "./words.js";
 import { collection, getDocs, doc, updateDoc, writeBatch } from "firebase/firestore";
 import {db} from "./firebase.js";
 
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 export const startRound = async (roomCode, settings) => {
-    const { impostorCount, mrWhiteEnabled, theme, customWords } = settings;
-    const pair = customWords ?? getRandomPairAnyTheme(theme);
+    const { impostorCount, mrWhiteEnabled, customWords, lang, showRoles } = settings;
+    const pair = customWords ?? getRandomPair(lang ?? "en");
 
     const playersRef = collection(db, "rooms", roomCode, "players");
     const snap = await getDocs(playersRef);
@@ -44,6 +44,7 @@ export const startRound = async (roomCode, settings) => {
         playerOrder,            // array of player ids in turn order
         currentTurnIndex: 0,  // index in playerOrder
         showRoles: settings.showRoles ?? true,
+        lang: lang ?? "en",
     });
 
     await batch.commit();

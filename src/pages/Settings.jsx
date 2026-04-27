@@ -3,16 +3,7 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 import { startRound } from "../lib/gameLogic.js";
-import { THEMES } from "../lib/words.js";
-
-const THEME_LABELS = {
-    random:  "🎲 Random",
-    animaux: "🐾 Animals",
-    food:    "🍕 Food",
-    films:   "🎬 Movies",
-    sport:   "⚽ Sport",
-    tech:    "💻 Tech",
-};
+import {detectLanguage} from "../lib/words.js";
 
 export default function Settings() {
     const { code } = useParams();
@@ -23,8 +14,8 @@ export default function Settings() {
     const [settings, setSettings] = useState({
         impostorCount: 1,
         mrWhiteEnabled: false,
-        theme: "random",
         showRoles: true,
+        lang: detectLanguage(),
         customWords: null,
         roundCount: 3,
     });
@@ -119,7 +110,7 @@ export default function Settings() {
                 </div>
             </div>
 
-            {/* hide roles */}
+            {/* show roles */}
             <div className="setting-row">
                 <div>
                     <div className="setting-label">Show roles during game</div>
@@ -131,21 +122,36 @@ export default function Settings() {
                 />
             </div>
 
-            {/* theme */}
-            {/*<div className="fu2" style={{ width: "100%" }}>*/}
-            {/*    <p className="eyebrow" style={{ marginBottom: 10 }}>Word theme</p>*/}
-            {/*    <div className="theme-grid">*/}
-            {/*        {["random", ...THEMES].map(t => (*/}
-            {/*            <button*/}
-            {/*                key={t}*/}
-            {/*                className={`theme-btn ${settings.theme === t && !useCustom ? "active" : ""}`}*/}
-            {/*                onClick={() => { setSettings(s => ({ ...s, theme: t })); setUseCustom(false); }}*/}
-            {/*            >*/}
-            {/*                {THEME_LABELS[t]}*/}
-            {/*            </button>*/}
-            {/*        ))}*/}
-            {/*    </div>*/}
-            {/*</div>*/}
+            {/* language */}
+            <div className="setting-row">
+                <div>
+                    <div className="setting-label">Word language</div>
+                    <div className="setting-sub">Auto-detected from your browser</div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                    {["fr", "en"].map(l => (
+                        <button
+                            key={l}
+                            onClick={() => setSettings(s => ({ ...s, lang: l }))}
+                            style={{
+                                padding: "6px 14px",
+                                borderRadius: 10,
+                                border: `1px solid ${settings.lang === l ? "var(--red)" : "var(--border)"}`,
+                                background: settings.lang === l ? "rgba(230,57,70,0.1)" : "var(--bg3)",
+                                color: settings.lang === l ? "var(--white)" : "var(--muted)",
+                                fontFamily: "'DM Sans', sans-serif",
+                                fontWeight: 600,
+                                fontSize: 13,
+                                cursor: "pointer",
+                                transition: "0.18s ease",
+                                boxShadow: settings.lang === l ? "0 0 10px var(--red-glow)" : "none",
+                            }}
+                        >
+                            {l.toUpperCase()}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             {/* custom words */}
             <div className="card fu3">
