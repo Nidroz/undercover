@@ -4,6 +4,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 import { startRound } from "../lib/gameLogic.js";
 import {detectLanguage} from "../lib/words.js";
+import { useViewPreference, VIEWS } from "../hooks/useViewPreference";
 
 export default function Settings() {
     const { code } = useParams();
@@ -64,6 +65,8 @@ export default function Settings() {
             setLoading(false);
         }
     };
+
+    const { view: defaultView, setView: setDefaultView, isDesktop } = useViewPreference();
 
     return (
         <div className="page">
@@ -152,6 +155,37 @@ export default function Settings() {
                     ))}
                 </div>
             </div>
+
+            {isDesktop && (
+                <div className="setting-row">
+                    <div>
+                    <div className="setting-label">Default view</div>
+                    <div className="setting-sub">Saved on your device</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                    {[
+                        { id: "chat",  label: "💬 Chat" },
+                        { id: "table", label: "⬡ Table" },
+                        { id: "stage", label: "🎭 Stage" },
+                    ].map(v => (
+                        <button
+                        key={v.id}
+                        onClick={() => setDefaultView(v.id)}
+                        style={{
+                            padding: "6px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+                            fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
+                            border: `1px solid ${defaultView === v.id ? "var(--red)" : "var(--border)"}`,
+                            background: defaultView === v.id ? "rgba(230,57,70,0.1)" : "var(--bg3)",
+                            color: defaultView === v.id ? "var(--white)" : "var(--muted)",
+                            transition: "0.18s ease",
+                        }}
+                        >
+                        {v.label}
+                        </button>
+                    ))}
+                    </div>
+                </div>
+            )}
 
             {/* custom words */}
             <div className="card fu3">

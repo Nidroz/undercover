@@ -1,36 +1,39 @@
 # 🕵️ Undercover
 
-A real-time multiplayer word deduction game built with React and Firebase. Find the impostors before they blend in — or be the impostor and survive.
+A real-time multiplayer word deduction game. Find the impostors before they blend in — or be the impostor and survive.
 
 [![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square&logo=react)](https://react.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-orange?style=flat-square&logo=firebase)](https://firebase.google.com)
 [![Vite](https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite)](https://vitejs.dev)
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
+[![Vercel](https://img.shields.io/badge/Deployed-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
 
 ---
 
 ## How to play
 
-Each player receives a secret word. Most players get the **same word** (civilians), but one or more get a **different, similar word** (impostors). One player may receive **no word at all** (Mr. White).
+Each player receives a secret word. Most players share the **same word** (civilians), but one or more receive a **different, similar word** (impostors). One player may get **no word at all** (Mr. White).
 
-Taking turns, each player gives a one-word clue related to their word without revealing it. After everyone has spoken, players vote on who they think the impostor is. The most-voted player is eliminated and their role is revealed.
+Players take turns giving a one-word clue related to their word. After everyone has spoken, the group votes to eliminate whoever seems most suspicious. The most-voted player is eliminated and their role is revealed.
 
-**Civilians win** by eliminating all impostors.  
-**Impostors win** if they survive the vote or if a civilian is eliminated.  
-**Mr. White wins** if eliminated but correctly guesses the civilian word.
+- **Civilians win** by eliminating all impostors
+- **Impostors win** by surviving until civilians are outnumbered, or if a civilian is eliminated
+- **Mr. White wins** if eliminated but correctly guesses the civilian word
 
 ---
 
 ## Features
 
-- 🔴 **Real-time multiplayer** — Firestore listeners keep all players in sync instantly
-- 🏠 **Room system** — Create or join a game via a 6-letter code or shareable link
-- 🎭 **Avatar picker** — Choose your emoji avatar before joining
-- ⚙️ **Configurable rounds** — Host sets number of rounds, impostors, and Mr. White
-- 🎲 **Word themes** — Random, Animals, Food, Movies, Sport, Tech — or set custom words
-- 🔄 **Turn order** — Structured clue-giving with a clear turn indicator
-- 🗳️ **Voting system** — All-alive players vote; most-voted is eliminated
-- 📊 **Results screen** — Full role reveal, eliminated player, word pair shown
+- **Real-time multiplayer** — Firestore listeners keep all players in sync instantly
+- **Room system** — Create or join via a 6-letter code or shareable link
+- **Avatar picker** — Choose an emoji avatar before joining
+- **3 game views** — Chat, Round Table, and Stage — switchable mid-game on desktop
+- **Configurable rounds** — Host sets number of rounds, impostors, Mr. White, and role visibility
+- **Bilingual word bank** — 100 word pairs in French and English, auto-detected from browser language with manual override
+- **Custom words** — Host can set their own civilian/impostor word pair
+- **Turn order** — Structured clue-giving with a clear turn indicator and optional timeline
+- **Mr. White guess phase** — When the impostor is eliminated, Mr. White gets one shot to guess the civilian word
+- **Voting system** — All alive players vote; most-voted is eliminated
+- **Results screen** — Full role reveal, word pair, and Mr. White guess outcome
 
 ---
 
@@ -64,8 +67,8 @@ npm install
 ### Firebase setup
 
 1. Go to [Firebase Console](https://console.firebase.google.com) and create a project
-2. Enable **Firestore Database** (Standard edition, `eur3` region recommended)
-3. Enable **Authentication → Anonymous**
+2. Enable **Firestore Database** — Standard edition, `eur3` region recommended
+3. Enable **Authentication → Sign-in method → Anonymous**
 4. Set Firestore rules to open for development:
 
 ```
@@ -109,29 +112,47 @@ vercel deploy
 
 Add your `.env.local` variables in the Vercel project settings under **Environment Variables**.
 
+Make sure `vercel.json` is at the root to handle client-side routing:
+
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
 ---
 
 ## Project structure
 
 ```
 src/
+├── components/
+│   └── ViewSwitcher.jsx    # Chat / Table / Stage view toggle
+├── hooks/
+│   └── useViewPreference.js  # Persists chosen game view to localStorage
 ├── pages/
-│   ├── Home.jsx        # Landing page — create or join
-│   ├── Lobby.jsx       # Waiting room with live player list
-│   ├── Wait.jsx        # Non-host waiting screen during setup
-│   ├── Settings.jsx    # Host configures the round
-│   ├── WordReveal.jsx  # Each player sees their secret word
-│   ├── Game.jsx        # Clue phase with turn order and chat
-│   ├── Vote.jsx        # Voting phase
-│   └── Result.jsx      # Round results and role reveal
+│   ├── BugReport.jsx       # Bug report button (inline + floating modes)
+│   ├── Home.jsx            # Landing — create or join a room
+│   ├── Lobby.jsx           # Waiting room with live player list
+│   ├── Wait.jsx            # Non-host holding screen during setup
+│   ├── Settings.jsx        # Host configures the round
+│   ├── WordReveal.jsx      # Each player sees their secret word privately
+│   ├── Game.jsx            # Clue phase — orchestrates the 3 views
+│   ├── GameViewTable.jsx   # Round table desktop view
+│   ├── GameViewStage.jsx   # Amphitheatre desktop view
+│   ├── Vote.jsx            # Voting phase
+│   ├── MrWhiteGuess.jsx    # Mr. White's word guess after impostor is eliminated
+│   └── Result.jsx          # Round results and full role reveal
 ├── lib/
-│   ├── firebase.js     # Firebase init (Firestore + Auth)
-│   ├── room.js         # Create/join room logic
-│   ├── gameLogic.js    # Role assignment, round start
-│   └── words.js        # Word bank by theme
-├── App.jsx             # Routes
-├── main.jsx            # Entry point
-└── index.css           # Global design system
+│   ├── firebase.js         # Firebase init (Firestore + Auth)
+│   ├── room.js             # Create/join room logic
+│   ├── gameLogic.js        # Role assignment and round start
+│   └── words.js            # FR/EN word banks + language detection
+├── App.jsx                 # Routes
+├── main.jsx                # Entry point
+└── index.css               # Global design system (dark theme)
 ```
 
 ---
@@ -141,45 +162,43 @@ src/
 ```
 rooms/{roomCode}
 ├── code, hostId, status, currentRound
-├── settings: { impostorCount, mrWhiteEnabled, theme, customWords, roundCount }
+├── showRoles, lang, mrWhiteUid, mrWhiteWon, mrWhiteGuess
+├── playerOrder: [uid, ...], currentTurnIndex: number
 ├── wordPair: { civilian, impostor }
-├── playerOrder: [uid, ...]
-├── currentTurnIndex: number
+├── settings: { impostorCount, mrWhiteEnabled, showRoles, roundCount }
 └── players/{playerId}
-    ├── name, avatar, isHost
+    ├── name, avatar, isHost, isAlive
     ├── role: "civilian" | "impostor" | "mrWhite"
-    ├── word, isAlive, hasVoted, votedFor, ready
+    ├── word, ready, hasVoted, votedFor
 ```
+
+---
+
+## Game views (desktop only)
+
+On desktop (≥ 1024px), players can switch between three views at any time using the switcher in the topbar. The preference is saved to `localStorage`.
+
+| View | Description |
+|---|---|
+| 💬 Chat | Default view — classic message feed with player avatars |
+| ⬡ Table | Round table — players split into two columns, all clues visible per player |
+| 🎭 Stage | Amphitheatre — active players in the foreground, others in the back row |
+
+On mobile, only the chat view is available.
 
 ---
 
 ## Known limitations
 
-- No rejoin after accidentally closing the tab (uid is stored in `sessionStorage`)
-- No tie-breaking logic on votes — first alphabetically wins
-- Mr. White word-guessing screen not yet implemented
-- Room cleanup (old rooms are not deleted automatically)
+- No rejoin after closing the tab — uid is stored in `sessionStorage` and lost on close
+- No tie-breaking on votes — first player alphabetically wins on a tie
+- Old rooms are never deleted from Firestore automatically
 
 ---
 
 ## Report a bug
 
-Found something broken? [**Open an issue →**](https://github.com/your-username/undercover/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D+)
-
-Or copy this template:
-
-```
-**What happened:**
-
-**Steps to reproduce:**
-1.
-2.
-3.
-
-**Expected behavior:**
-
-**Browser / device:**
-```
+Found something broken? [**Open an issue →**](https://github.com/your-username/undercover/issues/new?assignees=&labels=bug&title=%5BBUG%5D+)
 
 ---
 

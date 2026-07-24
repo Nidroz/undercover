@@ -37,7 +37,7 @@ function App() {
         <Route path="/result/:code" element={<Result />}/>
         <Route path="/mrwhite/:code" element={<MrWhiteGuess />}/>
       </Routes>
-      <BugReport />
+      <BugReport hide={window.location.pathname.startsWith('/game/')} />
     </BrowserRouter>
   )
 }
